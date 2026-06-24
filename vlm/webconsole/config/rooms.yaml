@@ -1,0 +1,26 @@
+kitchen:
+  # Vị trí robot ĐỨNG (lùi ~0.7m trước lò) — chỉnh bằng view_map.py nếu cần.
+  x: -0.43
+  y: -0.5
+  yaw: 2.36   # góc yaw thuần (rad) bạn tự set; robot dừng đúng hướng này
+  landmarks:
+  - microwave
+  - fridge
+  - stove
+  - sink
+living_room:
+  x: 3.20
+  y: -2.87
+  yaw: 0.17
+  landmarks:
+  - sofa
+  - tv
+  - coffee table
+bedroom:
+  x: 5.13
+  y: -0.48
+  yaw: 0.62
+  landmarks:
+  - bed
+  - wardrobe
+  - lamp
