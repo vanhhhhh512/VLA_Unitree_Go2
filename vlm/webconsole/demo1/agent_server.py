@@ -157,8 +157,17 @@ def main():
         navigator = Nav2Navigator()
         engine.load()
 
+    detector = None
+    if os.getenv("USE_YOLO", "1") == "1":
+        try:
+            from .yolo_detector import YoloDetector
+            detector = YoloDetector()
+            print(f"[demo1] YOLO detector sẵn sàng ({len(detector.names)} lớp COCO).")
+        except Exception as e:
+            print(f"[demo1] YOLO không dùng được ({e}); fallback Qwen grounding.")
+
     planner = Planner(engine)
-    perception = Perception(engine)
+    perception = Perception(engine, detector=detector)
     agent = Agent(planner, navigator, frame_source, perception, rooms)
 
     app = create_agent_app(agent, frame_source)

@@ -1,7 +1,18 @@
 # StrikeRobot — Demo1 (Agentic Nav + VLM)
 
-Gõ câu lệnh → Qwen planner chọn phòng → Nav2 điều hướng (né vật cản) → VLM quan sát
-microwave BẬT/TẮT → kết luận. UI timeline trắng, logo StrikeRobot.
+Gõ câu lệnh → Qwen planner chọn phòng → Nav2 điều hướng (né vật cản) → **YOLO detect +
+khoanh vùng vật thể** + **Qwen trả lời tự nhiên** → kết luận. UI timeline trắng, logo StrikeRobot.
+
+## Phát hiện vật thể (YOLO + Qwen)
+
+- **YOLO11n** (ultralytics, model `demo1/models/yolo11n.pt`, 80 lớp COCO) lo **detect + bounding box**
+  chính xác (frame-space, không cần scale). Kết quả YOLO được **mớm vào prompt của Qwen** để câu
+  trả lời chính xác hơn.
+- **Qwen2.5-VL** lo **trả lời câu hỏi** bằng ngôn ngữ tự nhiên (mô tả + kết luận YES/NO).
+- Tắt YOLO (quay về Qwen grounding): đặt `USE_YOLO=0`.
+- ultralytics cần ở python3.12 (runtime demo1):
+  `python3.12 -m pip install --user --break-system-packages --no-deps ultralytics ultralytics-thop`
+  (`--no-deps` để không đụng torch `+cu130`/numpy đang chạy).
 
 ## Chạy thật (cần robot + Nav2)
 
