@@ -83,3 +83,19 @@ def test_agent_no_frame_stops():
     events = _collect(agent, "x")
     assert any(e["type"] == "error" for e in events)
     assert not any(e["type"] == "answer" for e in events)
+
+
+import threading
+
+
+def test_agent_cancel_stops_before_answer():
+    cancel = threading.Event()
+    cancel.set()  # đã yêu cầu dừng ngay từ đầu
+    agent = Agent(FakePlanner(), FakeNavigator(), FakeFrame(), FakePerception(), ROOMS)
+    events = _collect_with_cancel(agent, "x", cancel)
+    assert any(e["type"] == "error" and "dừng" in e["message"] for e in events)
+    assert not any(e["type"] == "answer" for e in events)
+
+
+def _collect_with_cancel(agent, command, cancel):
+    return list(agent.run(command, cancel=cancel))

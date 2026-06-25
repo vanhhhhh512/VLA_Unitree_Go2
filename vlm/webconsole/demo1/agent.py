@@ -1,6 +1,8 @@
 """Orchestrator demo1: plan -> nav -> perceive -> answer."""
 from .planner import PlanError
 
+_STOP = {"type": "error", "message": "⏹ Đã dừng theo yêu cầu."}
+
 
 class Agent:
     def __init__(self, planner, navigator, frame_source, perception, rooms):
@@ -10,7 +12,10 @@ class Agent:
         self.perception = perception
         self.rooms = rooms
 
-    def run(self, command):
+    def run(self, command, cancel=None):
+        def cancelled():
+            return cancel is not None and cancel.is_set()
+
         # 1) PLAN
         yield {"type": "step", "id": "plan", "status": "running",
                "title": "Planning the task..."}
@@ -18,6 +23,9 @@ class Agent:
             plan = self.planner.plan(command, self.rooms)
         except PlanError as e:
             yield {"type": "error", "message": f"Planner: {e}"}
+            return
+        if cancelled():
+            yield _STOP
             return
         yield {"type": "token", "step": "plan", "text": plan.reasoning}
         yield {"type": "step", "id": "plan", "status": "done",
@@ -31,6 +39,11 @@ class Agent:
                "data": {"room": room.name, "x": room.x, "y": room.y}}
         success = False
         for ev in self.navigator.go_to(room):
+            if cancelled():
+                self._cancel_nav()
+                yield {"type": "step", "id": "nav", "status": "error"}
+                yield _STOP
+                return
             if ev["kind"] == "feedback":
                 yield {"type": "nav", "distance_remaining": ev["distance_remaining"]}
             elif ev["kind"] == "error":
@@ -45,6 +58,10 @@ class Agent:
             return
         yield {"type": "step", "id": "nav", "status": "done"}
 
+        if cancelled():
+            yield _STOP
+            return
+
         # 3) PERCEIVE
         yield {"type": "step", "id": "perceive", "status": "running",
                "title": f"Observing the {plan.target_object}"}
@@ -57,6 +74,10 @@ class Agent:
         for chunk in self.perception.observe(
             frame, plan.target_object, plan.observation_question
         ):
+            if cancelled():
+                yield {"type": "step", "id": "perceive", "status": "error"}
+                yield _STOP
+                return
             parts.append(chunk)
             yield {"type": "token", "step": "perceive", "text": chunk}
         result = self.perception.finalize(
@@ -69,3 +90,12 @@ class Agent:
         # 4) ANSWER — câu trả lời ngôn ngữ tự nhiên của VLM cho đúng câu hỏi.
         answer = result.answer or f"({result.state})"
         yield {"type": "answer", "text": answer, "state": result.state}
+
+    def _cancel_nav(self):
+        """Hủy goal Nav2 đang chạy (nếu navigator hỗ trợ)."""
+        cancel = getattr(self.navigator, "cancel", None)
+        if callable(cancel):
+            try:
+                cancel()
+            except Exception:
+                pass

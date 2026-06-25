@@ -29,6 +29,13 @@ class Nav2Navigator:
         self.nav = BasicNavigator()
         self.timeout_sec = timeout_sec
 
+    def cancel(self):
+        """Hủy goal đang chạy (gọi từ thread khác khi người dùng bấm Stop)."""
+        try:
+            self.nav.cancelTask()
+        except Exception:
+            pass
+
     def _make_pose(self, room):
         from geometry_msgs.msg import PoseStamped
         pose = PoseStamped()

@@ -1,6 +1,7 @@
 """FastAPI server cho demo1 (DI + mock mode)."""
 import os
 import asyncio
+import threading
 from pathlib import Path
 
 import numpy as np
@@ -33,6 +34,9 @@ class MockNavigator:
         for d in (2.0, 1.0, 0.3):
             yield {"kind": "feedback", "distance_remaining": d}
         yield {"kind": "done", "success": True}
+
+    def cancel(self):
+        pass
 
 
 def create_agent_app(agent, frame_source):
@@ -73,45 +77,58 @@ def create_agent_app(agent, frame_source):
     @app.websocket("/ws")
     async def ws(websocket: WebSocket):
         await websocket.accept()
+        # Vòng nhận lệnh KHÔNG bị chặn khi đang chạy job -> bắt được "stop".
+        job = {"task": None, "cancel": None}
         try:
             while True:
                 data = await websocket.receive_json()
+                action = (data or {}).get("action")
+                if action == "stop":
+                    if job["cancel"] is not None:
+                        job["cancel"].set()          # báo agent dừng
+                    continue
                 command = (data or {}).get("command", "").strip()
                 if not command:
                     continue
-                if app.state.busy:
+                if job["task"] is not None and not job["task"].done():
                     await websocket.send_json(
                         {"type": "error", "message": "Đang xử lý lệnh khác."})
                     continue
-                app.state.busy = True
-                try:
-                    loop = asyncio.get_event_loop()
-                    q: asyncio.Queue = asyncio.Queue()
-
-                    def produce():
-                        try:
-                            for ev in agent.run(command):
-                                asyncio.run_coroutine_threadsafe(q.put(ev), loop)
-                        except Exception as e:
-                            asyncio.run_coroutine_threadsafe(
-                                q.put({"type": "error", "message": str(e)}), loop)
-                        finally:
-                            asyncio.run_coroutine_threadsafe(q.put(None), loop)
-
-                    loop.run_in_executor(None, produce)
-                    while True:
-                        ev = await q.get()
-                        if ev is None:
-                            break
-                        await websocket.send_json(ev)
-                except Exception as e:
-                    await websocket.send_json({"type": "error", "message": str(e)})
-                finally:
-                    app.state.busy = False
+                job["cancel"] = threading.Event()
+                job["task"] = asyncio.create_task(
+                    _run_job(websocket, agent, command, job["cancel"]))
         except WebSocketDisconnect:
+            if job["cancel"] is not None:
+                job["cancel"].set()
             return
 
     return app
+
+
+async def _run_job(websocket, agent, command, cancel):
+    """Chạy agent.run trong executor, đẩy event ra WS; có thể bị cancel."""
+    loop = asyncio.get_event_loop()
+    q: asyncio.Queue = asyncio.Queue()
+
+    def produce():
+        try:
+            for ev in agent.run(command, cancel=cancel):
+                asyncio.run_coroutine_threadsafe(q.put(ev), loop)
+        except Exception as e:
+            asyncio.run_coroutine_threadsafe(
+                q.put({"type": "error", "message": str(e)}), loop)
+        finally:
+            asyncio.run_coroutine_threadsafe(q.put(None), loop)
+
+    loop.run_in_executor(None, produce)
+    while True:
+        ev = await q.get()
+        if ev is None:
+            break
+        try:
+            await websocket.send_json(ev)
+        except Exception:
+            break
 
 
 def main():
