@@ -17,8 +17,9 @@ def test_match_dance_specific_over_generic():
 
 
 def test_match_thanks():
-    assert match_action("cảm ơn")["api_id"] == 1036
-    assert match_action("thank you")["api_id"] == 1036
+    assert match_action("cảm ơn")["api_id"] == 1029     # chắp tay lạy (Scrape)
+    assert match_action("thank you")["api_id"] == 1029
+    assert match_action("thả tim")["api_id"] == 1036    # khác: thả tim
 
 
 def test_match_sit():
