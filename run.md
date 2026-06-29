@@ -1,11 +1,11 @@
 # RUN — Unitree Go2 · Nav + VLM (StrikeRobot Demo 1)
 
-Robot Go2 IP: **192.168.1.2** (cùng mạng với máy).
+Robot Go2 IP: **192.168.1.7** (cùng mạng với máy).
 
 ## Terminal 1 — Kết nối robot + Nav2
 ```bash
 pkill -f go2_driver ; pkill -f nav2 ; pkill -f controller_server ; pkill -f planner_server ; pkill -f bt_navigator ; sleep 2
-export ROBOT_IP=192.168.1.2
+export ROBOT_IP=192.168.1.7
 source /opt/ros/jazzy/setup.bash
 source ~/ros2_ws/install/setup.bash
 ros2 launch go2_robot_sdk navigation.launch.py
