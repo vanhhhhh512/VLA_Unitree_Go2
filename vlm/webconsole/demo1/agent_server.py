@@ -10,6 +10,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse, FileResponse
 
 from ..vlm_engine import encode_frame_jpeg
+from .motion import parse_motion
 
 WEBUI = Path(__file__).parent.parent / "webui" / "demo1.html"
 ASSETS = Path(__file__).parent.parent / "webui" / "assets"
@@ -39,7 +40,21 @@ class MockNavigator:
         pass
 
 
-def create_agent_app(agent, frame_source):
+class MockMotion:
+    def run(self, cmd, cancel=None):
+        import math
+        if cmd.kind == "move":
+            title = f"Moving {'forward' if cmd.value >= 0 else 'backward'} {abs(cmd.value):.2f} m"
+        else:
+            title = f"Turning {'left' if cmd.value >= 0 else 'right'} {math.degrees(abs(cmd.value)):.0f}°"
+        yield {"type": "step", "id": "motion", "status": "running", "title": title}
+        for d in (0.6, 0.3, 0.1):
+            yield {"type": "nav", "distance_remaining": d}
+        yield {"type": "step", "id": "motion", "status": "done"}
+        yield {"type": "answer", "text": f"Done — {title.lower()}.", "state": "UNKNOWN"}
+
+
+def create_agent_app(agent, frame_source, motion=None):
     app = FastAPI()
     app.state.busy = False
 
@@ -94,9 +109,15 @@ def create_agent_app(agent, frame_source):
                     await websocket.send_json(
                         {"type": "error", "message": "Đang xử lý lệnh khác."})
                     continue
-                job["cancel"] = threading.Event()
-                job["task"] = asyncio.create_task(
-                    _run_job(websocket, agent, command, job["cancel"]))
+                cancel = threading.Event()
+                job["cancel"] = cancel
+                # Lệnh chuyển động rời rạc (move/turn) -> motion; còn lại -> agentic.
+                mc = parse_motion(command)
+                if mc is not None and motion is not None:
+                    producer = lambda: motion.run(mc, cancel)        # noqa: E731
+                else:
+                    producer = lambda: agent.run(command, cancel=cancel)  # noqa: E731
+                job["task"] = asyncio.create_task(_run_job(websocket, producer))
         except WebSocketDisconnect:
             if job["cancel"] is not None:
                 job["cancel"].set()
@@ -105,14 +126,14 @@ def create_agent_app(agent, frame_source):
     return app
 
 
-async def _run_job(websocket, agent, command, cancel):
-    """Chạy agent.run trong executor, đẩy event ra WS; có thể bị cancel."""
+async def _run_job(websocket, producer):
+    """Chạy producer() (generator event) trong executor, đẩy ra WS; có thể cancel."""
     loop = asyncio.get_event_loop()
     q: asyncio.Queue = asyncio.Queue()
 
     def produce():
         try:
-            for ev in agent.run(command, cancel=cancel):
+            for ev in producer():
                 asyncio.run_coroutine_threadsafe(q.put(ev), loop)
         except Exception as e:
             asyncio.run_coroutine_threadsafe(
@@ -150,9 +171,11 @@ def main():
     mock = os.getenv("DEMO_MOCK") == "1"
     engine = VLMEngine()
 
+    motion = None
     if mock:
         frame_source = MockFrameSource()
         navigator = MockNavigator()
+        motion = MockMotion()
         print("[demo1] DEMO_MOCK=1 -> không cần ROS/robot.")
         if os.getenv("VLM_SKIP_MODEL") != "1":
             engine.load()
@@ -172,6 +195,12 @@ def main():
         cam_exec.add_node(node)
         threading.Thread(target=cam_exec.spin, daemon=True).start()
         navigator = Nav2Navigator()
+        try:
+            from .motion import MotionController
+            motion = MotionController(node)
+            print("[demo1] Motion controller (cmd_vel_joy) sẵn sàng.")
+        except Exception as e:
+            print(f"[demo1] Motion controller lỗi ({e}); chế độ lệnh tay tắt.")
         engine.load()
 
     detector = None
@@ -187,7 +216,7 @@ def main():
     perception = Perception(engine, detector=detector)
     agent = Agent(planner, navigator, frame_source, perception, rooms)
 
-    app = create_agent_app(agent, frame_source)
+    app = create_agent_app(agent, frame_source, motion=motion)
     try:
         # timeout_graceful_shutdown: đừng chờ vô tận luồng MJPEG /video_feed khi Ctrl+C.
         uvicorn.run(app, host="0.0.0.0", port=8001, timeout_graceful_shutdown=3)

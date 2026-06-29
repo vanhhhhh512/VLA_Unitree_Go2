@@ -62,3 +62,28 @@ def test_ws_runs_pipeline_to_answer():
     assert events[-1]["type"] == "answer"
     assert events[-1]["state"] == "ON"
     assert any(e["type"] == "step" and e.get("id") == "nav" for e in events)
+
+
+class FakeMotion:
+    def run(self, cmd, cancel=None):
+        yield {"type": "step", "id": "motion", "status": "running", "title": "Moving"}
+        yield {"type": "nav", "distance_remaining": 0.3}
+        yield {"type": "step", "id": "motion", "status": "done"}
+        yield {"type": "answer", "text": "Done.", "state": "UNKNOWN"}
+
+
+def test_motion_command_routes_to_motion():
+    agent = Agent(FakePlanner(), FakeNav(), FakeFrame(), FakePerception(), ROOMS)
+    client = TestClient(create_agent_app(agent, FakeFrame(), motion=FakeMotion()))
+    with client.websocket_connect("/ws") as ws:
+        ws.send_json({"command": "move forward 75 cm"})
+        events = []
+        while True:
+            m = ws.receive_json()
+            events.append(m)
+            if m["type"] in ("answer", "error"):
+                break
+    # đi qua motion (không qua nav/plan của agentic)
+    assert any(e.get("id") == "motion" for e in events if e["type"] == "step")
+    assert not any(e.get("id") == "plan" for e in events if e["type"] == "step")
+    assert events[-1]["type"] == "answer"

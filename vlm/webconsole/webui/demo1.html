@@ -122,7 +122,7 @@
       </div>
     </div>
     <form id="composer" class="composer">
-      <input id="cmd" placeholder='e.g. "Is the bottle on the microwave?"' autocomplete="off">
+      <input id="cmd" placeholder='Ask: "Is the bottle on the microwave?"  ·  Move: "move forward 75 cm" / "turn left 90 deg"' autocomplete="off">
       <button id="stop" class="btn stop" type="button">Stop</button>
       <button id="send" class="btn send" type="submit">Send</button>
     </form>
@@ -141,8 +141,8 @@ const answerBox = document.getElementById('answer');
 const answerTxt = document.getElementById('answer-txt');
 const answerState = document.getElementById('answer-state');
 
-const ICONS  = { plan:'🧠', nav:'🧭', perceive:'👁️' };
-const TITLES = { plan:'Planning', nav:'Navigating', perceive:'Observing' };
+const ICONS  = { plan:'🧠', nav:'🧭', perceive:'👁️', motion:'🚶' };
+const TITLES = { plan:'Planning', nav:'Navigating', perceive:'Observing', motion:'Motion' };
 const steps = {};
 
 async function pollStatus() {
