@@ -16,6 +16,18 @@ ros2 launch go2_robot_sdk navigation.launch.py
 cd ~/ros2_ws/src
 ./run_demo1.sh
 ```
+Mở trình duyệt: **http://localhost:8001**
+
+Nhập lệnh trong ô GUI:
+- Hỏi-đáp + điều hướng: `Is the bottle on the microwave?`
+- Lệnh chuyển động tay: `move forward 75 cm` · `move backward 30 cm` · `turn left 90 deg` · `turn right 45 deg`
+- Bấm **Stop** để hủy khi đang chạy.
+
+GUI biến thể (tùy chọn, đặt biến trước lệnh):
+```bash
+DEMO_MOCK=1 ./run_demo1.sh        # xem GUI không cần robot/ROS
+USE_YOLO=0  ./run_demo1.sh        # tắt YOLO, dùng Qwen grounding
+```
 
 ## Terminal 3 — Điều khiển tay bằng bàn phím (tùy chọn)
 ```bash
