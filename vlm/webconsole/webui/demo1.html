@@ -6,53 +6,63 @@
 <title>StrikeRobot · Demo 1</title>
 <style>
   :root {
-    --ink:#0f1115; --sub:#5b6470; --line:#e3e6ea; --bg:#f3f5f7; --card:#ffffff;
-    --accent:#1f2937; --ok:#15803d; --run:#1d4ed8; --err:#b91c1c; --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --ink:#0f1115; --sub:#5b6470; --line:#e3e6ea; --bg:#eef1f4; --card:#ffffff;
+    --accent:#111827; --ok:#15803d; --run:#1d4ed8; --err:#b91c1c;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
   }
   * { box-sizing:border-box; }
   html,body { margin:0; height:100%; }
   body { font-family:"Inter","Segoe UI",system-ui,sans-serif; color:var(--ink);
          background:var(--bg); overflow:hidden; font-size:14px; }
 
-  header { display:flex; align-items:center; gap:12px; padding:12px 20px;
+  header { display:flex; align-items:center; gap:12px; padding:11px 18px;
            background:var(--card); border-bottom:1px solid var(--line); }
   header img { width:34px; height:34px; border-radius:7px; object-fit:cover; }
   header .brand { display:flex; flex-direction:column; line-height:1.2; }
-  header .t { font-weight:700; letter-spacing:1.2px; font-size:15px; }
+  header .t { font-weight:800; letter-spacing:1.2px; font-size:15px; }
   header .s { color:var(--sub); font-size:11px; }
-  .pill { margin-left:auto; font-family:var(--mono); font-size:11px; padding:5px 11px;
-          border:1px solid var(--line); border-radius:5px; color:var(--sub);
-          display:flex; align-items:center; gap:7px; background:#fafbfc; }
+  .pill { font-family:var(--mono); font-size:11px; padding:5px 11px; border:1px solid var(--line);
+          border-radius:5px; color:var(--sub); display:flex; align-items:center; gap:7px;
+          background:#fafbfc; margin-left:auto; }
   .dot { width:8px; height:8px; border-radius:50%; background:#cbd5e1; }
   .pill.on .dot { background:var(--ok); } .pill.off .dot { background:var(--err); }
+  /* Emergency stop — always visible */
+  .estop { display:flex; align-items:center; gap:8px; background:#dc2626; color:#fff; border:0;
+           border-radius:7px; padding:9px 16px; font-weight:800; letter-spacing:.5px; font-size:13px;
+           cursor:pointer; box-shadow:0 1px 0 #991b1b inset, 0 2px 6px rgba(220,38,38,.35); }
+  .estop:hover { background:#ef4444; }
+  .estop:active { transform:translateY(1px); }
+  .estop .oct { width:14px; height:14px; background:#fff; border-radius:3px;
+                clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%); }
 
   .app { display:grid; grid-template-columns:1.1fr 1fr; gap:14px; padding:14px;
-         height:calc(100vh - 60px); }
+         height:calc(100vh - 58px); }
   .card { background:var(--card); border:1px solid var(--line); border-radius:8px;
           display:flex; flex-direction:column; overflow:hidden; }
   .card h2 { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--sub);
              margin:0; padding:11px 16px; border-bottom:1px solid var(--line);
              display:flex; align-items:center; gap:7px; font-weight:600; }
   .card h2 .live { width:7px; height:7px; border-radius:50%; background:var(--err); }
+  .card h2 .clear { margin-left:auto; font-size:10px; color:var(--sub); cursor:pointer;
+                    border:1px solid var(--line); border-radius:4px; padding:3px 8px; background:#fff; }
 
-  .video { flex:1; display:flex; align-items:center; justify-content:center;
-           background:#101317; padding:10px; }
+  .video { flex:1; display:flex; align-items:center; justify-content:center; background:#101317; padding:10px; }
   .video img { max-width:100%; max-height:100%; border-radius:4px; }
 
-  .timeline { flex:1; overflow-y:auto; padding:14px 16px; display:flex;
-              flex-direction:column; gap:10px; }
-  .empty { margin:auto; color:#9aa1ac; text-align:center; max-width:280px; }
+  .chat { flex:1; overflow-y:auto; padding:14px 16px; display:flex; flex-direction:column; gap:16px; }
+  .empty { margin:auto; color:#9aa1ac; text-align:center; max-width:300px; }
 
+  .turn { display:flex; flex-direction:column; gap:9px; padding-bottom:14px;
+          border-bottom:1px solid var(--line); }
+  .turn:last-child { border-bottom:0; }
   .bubble { align-self:flex-end; max-width:82%; background:var(--accent); color:#fff;
-            padding:9px 13px; border-radius:7px 7px 2px 7px; font-size:13px; }
-  .bubble .who { font-family:var(--mono); font-size:9px; letter-spacing:1px;
-                 opacity:.55; margin-bottom:2px; }
+            padding:9px 13px; border-radius:8px 8px 2px 8px; font-size:13px; }
+  .bubble .who { font-family:var(--mono); font-size:9px; letter-spacing:1px; opacity:.55; margin-bottom:2px; }
+  .steps { display:flex; flex-direction:column; }
 
-  .step { display:flex; gap:11px; padding:9px 0; border-bottom:1px solid var(--line); }
-  .step:last-child { border-bottom:0; }
-  .ico { width:30px; height:30px; flex:none; border-radius:6px; display:flex;
-         align-items:center; justify-content:center; font-size:15px; background:#f1f3f6;
-         border:1px solid var(--line); }
+  .step { display:flex; gap:11px; padding:8px 0; }
+  .ico { width:30px; height:30px; flex:none; border-radius:6px; display:flex; align-items:center;
+         justify-content:center; font-size:15px; background:#f1f3f6; border:1px solid var(--line); }
   .step.running .ico { background:#eaf0ff; border-color:#c7d7fe; }
   .step.done .ico    { background:#e9f7ef; border-color:#bbe5c8; }
   .step.error .ico   { background:#fdecec; border-color:#f4c6c6; }
@@ -61,36 +71,28 @@
   .step.running .title::after { content:"●"; color:var(--run); font-size:9px; }
   .step .detail { color:var(--sub); font-size:12.5px; margin-top:3px; white-space:pre-wrap;
                   line-height:1.5; word-break:break-word; }
-  .step .detail img { display:block; margin-top:8px; max-width:100%; border-radius:5px;
-                      border:1px solid var(--line); }
+  .step .detail img { display:block; margin-top:8px; max-width:100%; border-radius:5px; border:1px solid var(--line); }
   .mono { font-family:var(--mono); font-size:11.5px; color:#475569; background:#f1f3f6;
           padding:1px 6px; border-radius:4px; }
 
-  .answer { margin:12px 16px 14px; padding:14px; border-radius:7px; border:1px solid var(--line);
-            background:#fafbfc; display:none; }
+  .answer { padding:12px 14px; border-radius:7px; border:1px solid var(--line); background:#fafbfc; display:none; }
   .answer.show { display:block; }
-  .answer .lab { font-family:var(--mono); font-size:10px; color:var(--sub);
-                 text-transform:uppercase; letter-spacing:1px; }
-  .answer .row { display:flex; align-items:flex-start; gap:10px; margin-top:7px; }
-  .answer .state { font-family:var(--mono); padding:3px 10px; border-radius:5px; font-size:12px;
-                   font-weight:700; flex:none; }
-  .answer .state.ON, .answer .state.YES { background:#e9f7ef; color:var(--ok); border:1px solid #bbe5c8; }
-  .answer .state.OFF, .answer .state.NO { background:#fdecec; color:var(--err); border:1px solid #f4c6c6; }
-  .answer .state.UNKNOWN { background:#fef6e7; color:#92600e; border:1px solid #f3e0b5; }
-  .answer .txt { font-size:14px; font-weight:600; line-height:1.5; }
+  .answer .lab { font-family:var(--mono); font-size:10px; color:var(--sub); text-transform:uppercase; letter-spacing:1px; }
+  .arow { display:flex; align-items:flex-start; gap:10px; margin-top:7px; }
+  .state { font-family:var(--mono); padding:3px 10px; border-radius:5px; font-size:12px; font-weight:700; flex:none; }
+  .state.ON, .state.YES { background:#e9f7ef; color:var(--ok); border:1px solid #bbe5c8; }
+  .state.OFF, .state.NO { background:#fdecec; color:var(--err); border:1px solid #f4c6c6; }
+  .state.UNKNOWN { background:#fef6e7; color:#92600e; border:1px solid #f3e0b5; }
+  .txt { font-size:14px; font-weight:600; line-height:1.5; }
 
-  .composer { display:flex; gap:8px; padding:12px 14px; border-top:1px solid var(--line);
-              background:var(--card); }
-  .composer input { flex:1; border:1px solid var(--line); border-radius:6px;
-                    padding:10px 13px; font-size:13.5px; outline:none; }
+  .composer { display:flex; gap:8px; padding:12px 14px; border-top:1px solid var(--line); background:var(--card); }
+  .composer input { flex:1; border:1px solid var(--line); border-radius:6px; padding:10px 13px; font-size:13.5px; outline:none; }
   .composer input:focus { border-color:var(--accent); }
-  .btn { border:0; border-radius:6px; padding:0 18px; font-weight:600; font-size:13px;
-         cursor:pointer; }
+  .btn { border:0; border-radius:6px; padding:0 18px; font-weight:600; font-size:13px; cursor:pointer; }
   .btn.send { background:var(--accent); color:#fff; }
   .btn.send:disabled { opacity:.4; cursor:not-allowed; }
   .btn.stop { background:#fff; color:var(--err); border:1px solid var(--err); display:none; }
   .btn.stop.show { display:inline-block; }
-  .btn.stop:active { background:#fdecec; }
 </style>
 </head>
 <body>
@@ -101,6 +103,9 @@
     <span class="s">Demo 1 · Agentic Navigation + Vision</span>
   </div>
   <span id="pill" class="pill off"><span class="dot"></span><span id="ptxt">—</span></span>
+  <button id="estop" class="estop" title="Emergency Stop — halt the robot now">
+    <span class="oct"></span> E-STOP
+  </button>
 </header>
 
 <div class="app">
@@ -110,16 +115,9 @@
   </section>
 
   <section class="card">
-    <h2>Reasoning</h2>
-    <div id="timeline" class="timeline">
+    <h2>Reasoning <span id="clear" class="clear">Clear</span></h2>
+    <div id="chat" class="chat">
       <div class="empty">Enter a command to begin — e.g. <b>“Is the bottle on the microwave?”</b></div>
-    </div>
-    <div id="answer" class="answer">
-      <div class="lab">Conclusion</div>
-      <div class="row">
-        <span id="answer-state" class="state"></span>
-        <div id="answer-txt" class="txt"></div>
-      </div>
     </div>
     <form id="composer" class="composer">
       <input id="cmd" placeholder='Ask: "Is the bottle on the microwave?"  ·  Move: "move forward 75 cm" / "turn left 90 deg"' autocomplete="off">
@@ -130,20 +128,21 @@
 </div>
 
 <script>
-const timeline = document.getElementById('timeline');
+const chat = document.getElementById('chat');
 const form = document.getElementById('composer');
 const cmd = document.getElementById('cmd');
 const sendBtn = document.getElementById('send');
 const stopBtn = document.getElementById('stop');
+const estopBtn = document.getElementById('estop');
+const clearBtn = document.getElementById('clear');
 const pill = document.getElementById('pill');
 const ptxt = document.getElementById('ptxt');
-const answerBox = document.getElementById('answer');
-const answerTxt = document.getElementById('answer-txt');
-const answerState = document.getElementById('answer-state');
 
 const ICONS  = { plan:'🧠', nav:'🧭', perceive:'👁️', motion:'🚶' };
 const TITLES = { plan:'Planning', nav:'Navigating', perceive:'Observing', motion:'Motion' };
-const steps = {};
+
+let curr = null;   // turn hiện tại {stepsEl, steps, ansEl, stateEl, txtEl}
+let busy = false, ws;
 
 async function pollStatus() {
   try {
@@ -154,30 +153,35 @@ async function pollStatus() {
 }
 pollStatus(); setInterval(pollStatus, 3000);
 
-function clearEmpty(){ const e=timeline.querySelector('.empty'); if(e) e.remove(); }
-function ensureStep(id){
-  if(steps[id]) return steps[id];
+function clearEmpty(){ const e=chat.querySelector('.empty'); if(e) e.remove(); }
+
+function newTurn(command){
   clearEmpty();
-  const el=document.createElement('div'); el.className='step running';
-  el.innerHTML=`<div class="ico">${ICONS[id]||'•'}</div><div class="body">
-    <div class="title"></div><div class="detail"></div></div>`;
-  el.querySelector('.title').textContent = TITLES[id] || id;
-  timeline.appendChild(el); timeline.scrollTop=timeline.scrollHeight;
-  steps[id]={el, detail:el.querySelector('.detail'), title:el.querySelector('.title')};
-  return steps[id];
-}
-function reset(){ timeline.innerHTML=''; for(const k in steps) delete steps[k];
-  answerBox.classList.remove('show'); }
-function addUserBubble(text){
-  clearEmpty();
+  const turn=document.createElement('div'); turn.className='turn';
   const b=document.createElement('div'); b.className='bubble';
   const who=document.createElement('div'); who.className='who'; who.textContent='YOU';
-  const t=document.createElement('div'); t.textContent=text;
-  b.appendChild(who); b.appendChild(t);
-  timeline.appendChild(b); timeline.scrollTop=timeline.scrollHeight;
+  const bt=document.createElement('div'); bt.textContent=command;
+  b.appendChild(who); b.appendChild(bt);
+  const steps=document.createElement('div'); steps.className='steps';
+  const ans=document.createElement('div'); ans.className='answer';
+  ans.innerHTML='<div class="lab">Conclusion</div><div class="arow"><span class="state"></span><div class="txt"></div></div>';
+  turn.appendChild(b); turn.appendChild(steps); turn.appendChild(ans);
+  chat.appendChild(turn);
+  curr={ stepsEl:steps, steps:{}, ansEl:ans,
+         stateEl:ans.querySelector('.state'), txtEl:ans.querySelector('.txt') };
+  chat.scrollTop=chat.scrollHeight;
+}
+function ensureStep(id){
+  if(!curr) return null;
+  if(curr.steps[id]) return curr.steps[id];
+  const el=document.createElement('div'); el.className='step running';
+  el.innerHTML=`<div class="ico">${ICONS[id]||'•'}</div><div class="body"><div class="title"></div><div class="detail"></div></div>`;
+  el.querySelector('.title').textContent=TITLES[id]||id;
+  curr.stepsEl.appendChild(el); chat.scrollTop=chat.scrollHeight;
+  curr.steps[id]={el, detail:el.querySelector('.detail'), title:el.querySelector('.title')};
+  return curr.steps[id];
 }
 
-let ws, busy=false;
 function connectWS(){
   ws=new WebSocket(`ws://${location.host}/ws`);
   ws.onclose=()=>setTimeout(connectWS,1500);
@@ -187,35 +191,30 @@ connectWS();
 
 function onMsg(ev){
   const m=JSON.parse(ev.data);
+  if(!curr) return;
   if(m.type==='step'){
-    const s=ensureStep(m.id);
-    s.el.className='step '+m.status;
+    const s=ensureStep(m.id); s.el.className='step '+m.status;
     if(m.title) s.title.textContent=m.title;
     if(m.data && m.data.x!==undefined)
       s.detail.innerHTML=`Target <span class="mono">${m.data.room}</span> → <span class="mono">x=${m.data.x}, y=${m.data.y}</span>`;
   } else if(m.type==='token'){
-    const s=ensureStep(m.step); s.detail.textContent+=m.text;
-    timeline.scrollTop=timeline.scrollHeight;
+    const s=ensureStep(m.step); s.detail.textContent+=m.text; chat.scrollTop=chat.scrollHeight;
   } else if(m.type==='nav'){
-    const s=ensureStep('nav');
-    s.detail.innerHTML=`<span class="mono">${m.distance_remaining.toFixed(2)} m</span> remaining…`;
+    const s=ensureStep('nav'); s.detail.innerHTML=`<span class="mono">${m.distance_remaining.toFixed(2)} m</span> remaining…`;
   } else if(m.type==='image'){
     const s=ensureStep('perceive'); const img=new Image();
-    img.src='data:image/jpeg;base64,'+m.data; s.detail.appendChild(img);
-    timeline.scrollTop=timeline.scrollHeight;
+    img.src='data:image/jpeg;base64,'+m.data; s.detail.appendChild(img); chat.scrollTop=chat.scrollHeight;
   } else if(m.type==='answer'){
-    answerTxt.textContent=m.text;
-    const showChip = m.state && m.state!=='UNKNOWN';
-    answerState.textContent=m.state; answerState.className='state '+m.state;
-    answerState.style.display = showChip ? '' : 'none';
-    answerBox.classList.add('show'); finish();
+    curr.txtEl.textContent=m.text;
+    const show = m.state && m.state!=='UNKNOWN';
+    curr.stateEl.textContent=m.state; curr.stateEl.className='state '+m.state;
+    curr.stateEl.style.display = show ? '' : 'none';
+    curr.ansEl.classList.add('show'); finish();
   } else if(m.type==='error'){
-    finish(); clearEmpty();
     const e=document.createElement('div'); e.className='step error';
-    e.innerHTML=`<div class="ico">⚠️</div><div class="body"><div class="title">Stopped / Error</div>
-      <div class="detail"></div></div>`;
+    e.innerHTML=`<div class="ico">⚠️</div><div class="body"><div class="title">Stopped / Error</div><div class="detail"></div></div>`;
     e.querySelector('.detail').textContent=m.message;
-    timeline.appendChild(e); timeline.scrollTop=timeline.scrollHeight;
+    curr.stepsEl.appendChild(e); chat.scrollTop=chat.scrollHeight; finish();
   }
 }
 
@@ -223,7 +222,7 @@ form.addEventListener('submit',(e)=>{
   e.preventDefault();
   const c=cmd.value.trim();
   if(!c||busy||ws.readyState!==1) return;
-  reset(); addUserBubble(c);
+  newTurn(c);
   busy=true; sendBtn.disabled=true; stopBtn.classList.add('show'); cmd.value='';
   ws.send(JSON.stringify({command:c}));
 });
@@ -232,6 +231,15 @@ stopBtn.addEventListener('click',()=>{
   if(!busy||ws.readyState!==1) return;
   ws.send(JSON.stringify({action:'stop'}));
   stopBtn.textContent='Stopping…'; stopBtn.disabled=true;
+});
+
+estopBtn.addEventListener('click',()=>{
+  if(ws.readyState===1) ws.send(JSON.stringify({action:'estop'}));
+});
+
+clearBtn.addEventListener('click',()=>{
+  chat.innerHTML='<div class="empty">Enter a command to begin — e.g. <b>“Is the bottle on the microwave?”</b></div>';
+  curr=null;
 });
 
 function finish(){

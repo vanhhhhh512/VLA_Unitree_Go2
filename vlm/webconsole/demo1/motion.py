@@ -123,6 +123,11 @@ class MotionController:
         for _ in range(3):
             self._publish(0.0, 0.0)
 
+    def estop(self):
+        """Phanh khẩn cấp: spam vận tốc 0 lên cmd_vel_joy (đè mọi nguồn)."""
+        for _ in range(8):
+            self._publish(0.0, 0.0)
+
     def _move(self, distance, cancel):
         import time
         if self._odom is None:

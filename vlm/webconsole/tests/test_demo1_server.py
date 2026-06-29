@@ -87,3 +87,12 @@ def test_motion_command_routes_to_motion():
     assert any(e.get("id") == "motion" for e in events if e["type"] == "step")
     assert not any(e.get("id") == "plan" for e in events if e["type"] == "step")
     assert events[-1]["type"] == "answer"
+
+
+def test_estop_returns_halt_message():
+    agent = Agent(FakePlanner(), FakeNav(), FakeFrame(), FakePerception(), ROOMS)
+    client = TestClient(create_agent_app(agent, FakeFrame(), motion=FakeMotion()))
+    with client.websocket_connect("/ws") as ws:
+        ws.send_json({"action": "estop"})
+        m = ws.receive_json()
+    assert m["type"] == "error" and "EMERGENCY" in m["message"]

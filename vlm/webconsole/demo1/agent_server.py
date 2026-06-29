@@ -53,6 +53,9 @@ class MockMotion:
         yield {"type": "step", "id": "motion", "status": "done"}
         yield {"type": "answer", "text": f"Done — {title.lower()}.", "state": "UNKNOWN"}
 
+    def estop(self):
+        pass
+
 
 def create_agent_app(agent, frame_source, motion=None):
     app = FastAPI()
@@ -101,6 +104,19 @@ def create_agent_app(agent, frame_source, motion=None):
                 if action == "stop":
                     if job["cancel"] is not None:
                         job["cancel"].set()          # báo agent dừng
+                    continue
+                if action == "estop":
+                    # Dừng khẩn cấp: hủy job + phanh robot ngay (publish vận tốc 0).
+                    if job["cancel"] is not None:
+                        job["cancel"].set()
+                    est = getattr(motion, "estop", None)
+                    if callable(est):
+                        try:
+                            est()
+                        except Exception:
+                            pass
+                    await websocket.send_json(
+                        {"type": "error", "message": "🛑 EMERGENCY STOP — robot halted."})
                     continue
                 command = (data or {}).get("command", "").strip()
                 if not command:
