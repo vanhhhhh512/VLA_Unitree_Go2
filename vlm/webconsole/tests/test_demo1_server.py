@@ -96,3 +96,31 @@ def test_estop_returns_halt_message():
         ws.send_json({"action": "estop"})
         m = ws.receive_json()
     assert m["type"] == "error" and "EMERGENCY" in m["message"]
+
+
+class FakeAction:
+    def run(self, act, cancel=None):
+        yield {"type": "step", "id": "action", "status": "running", "title": act["vi"]}
+        yield {"type": "step", "id": "action", "status": "done"}
+        yield {"type": "answer", "text": "ok", "state": "UNKNOWN"}
+
+
+def test_actions_endpoint():
+    r = make_client().get("/actions")
+    data = r.json()
+    assert isinstance(data, list) and any(a["api_id"] == 1016 for a in data)
+
+
+def test_action_command_routes_to_action():
+    agent = Agent(FakePlanner(), FakeNav(), FakeFrame(), FakePerception(), ROOMS)
+    client = TestClient(create_agent_app(agent, FakeFrame(), action=FakeAction()))
+    with client.websocket_connect("/ws") as ws:
+        ws.send_json({"command": "đứng dậy"})
+        events = []
+        while True:
+            m = ws.receive_json()
+            events.append(m)
+            if m["type"] in ("answer", "error"):
+                break
+    assert any(e.get("id") == "action" for e in events if e["type"] == "step")
+    assert not any(e.get("id") == "plan" for e in events if e["type"] == "step")

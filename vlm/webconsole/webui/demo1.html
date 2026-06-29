@@ -93,6 +93,28 @@
   .btn.send:disabled { opacity:.4; cursor:not-allowed; }
   .btn.stop { background:#fff; color:var(--err); border:1px solid var(--err); display:none; }
   .btn.stop.show { display:inline-block; }
+
+  .notebtn { border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:7px;
+             padding:8px 13px; font-weight:600; font-size:13px; cursor:pointer; }
+  .notebtn:hover { background:#f6f8fa; }
+
+  .modal { position:fixed; inset:0; background:rgba(15,17,21,.5); display:none;
+           align-items:center; justify-content:center; z-index:50; }
+  .modal.show { display:flex; }
+  .modal .box { background:#fff; width:min(860px,93vw); max-height:84vh; border-radius:10px;
+                overflow:hidden; display:flex; flex-direction:column;
+                box-shadow:0 20px 60px rgba(0,0,0,.3); }
+  .modal .mhead { display:flex; align-items:center; padding:13px 18px; border-bottom:1px solid var(--line); }
+  .modal .mhead h3 { margin:0; font-size:15px; }
+  .modal .x { margin-left:auto; cursor:pointer; border:1px solid var(--line); background:#fff;
+              border-radius:6px; width:30px; height:30px; font-size:15px; line-height:1; }
+  .modal .x:hover { background:#fdecec; color:var(--err); border-color:var(--err); }
+  .modal .mbody { overflow-y:auto; }
+  table.acts { width:100%; border-collapse:collapse; font-size:13px; }
+  table.acts th, table.acts td { text-align:left; padding:9px 16px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.acts th { font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--sub);
+                  position:sticky; top:0; background:#fff; }
+  table.acts .k { font-family:var(--mono); font-size:11.5px; color:#475569; white-space:nowrap; }
 </style>
 </head>
 <body>
@@ -103,6 +125,7 @@
     <span class="s">Demo 1 · Agentic Navigation + Vision</span>
   </div>
   <span id="pill" class="pill off"><span class="dot"></span><span id="ptxt">—</span></span>
+  <button id="note" class="notebtn" title="Bảng hành động robot">📖 Note</button>
   <button id="estop" class="estop" title="Emergency Stop — halt the robot now">
     <span class="oct"></span> E-STOP
   </button>
@@ -127,6 +150,21 @@
   </section>
 </div>
 
+<div id="modal" class="modal">
+  <div class="box">
+    <div class="mhead">
+      <h3>📖 Bảng hành động Robot</h3>
+      <button id="modalx" class="x" title="Đóng">✕</button>
+    </div>
+    <div class="mbody">
+      <table class="acts">
+        <thead><tr><th>Hành động</th><th>Gõ lệnh</th><th>Mô tả</th></tr></thead>
+        <tbody id="acts-body"><tr><td colspan="3" style="padding:16px;color:#9aa1ac">Đang tải…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <script>
 const chat = document.getElementById('chat');
 const form = document.getElementById('composer');
@@ -138,8 +176,8 @@ const clearBtn = document.getElementById('clear');
 const pill = document.getElementById('pill');
 const ptxt = document.getElementById('ptxt');
 
-const ICONS  = { plan:'🧠', nav:'🧭', perceive:'👁️', motion:'🚶' };
-const TITLES = { plan:'Planning', nav:'Navigating', perceive:'Observing', motion:'Motion' };
+const ICONS  = { plan:'🧠', nav:'🧭', perceive:'👁️', motion:'🚶', action:'🤖' };
+const TITLES = { plan:'Planning', nav:'Navigating', perceive:'Observing', motion:'Motion', action:'Action' };
 
 let curr = null;   // turn hiện tại {stepsEl, steps, ansEl, stateEl, txtEl}
 let busy = false, ws;
@@ -241,6 +279,29 @@ clearBtn.addEventListener('click',()=>{
   chat.innerHTML='<div class="empty">Enter a command to begin — e.g. <b>“Is the bottle on the microwave?”</b></div>';
   curr=null;
 });
+
+// Note: bảng hành động robot (fetch /actions)
+const noteBtn=document.getElementById('note');
+const modal=document.getElementById('modal');
+const modalx=document.getElementById('modalx');
+const actsBody=document.getElementById('acts-body');
+let actsLoaded=false;
+async function openNote(){
+  if(!actsLoaded){
+    try{
+      const list=await (await fetch('/actions')).json();
+      actsBody.innerHTML=list.map(a=>
+        `<tr><td><b>${a.vi}</b></td><td class="k">${a.keys.slice(0,3).join('<br>')}</td><td>${a.desc}</td></tr>`
+      ).join('');
+      actsLoaded=true;
+    }catch(e){ actsBody.innerHTML='<tr><td colspan="3" style="padding:16px">Không tải được danh sách.</td></tr>'; }
+  }
+  modal.classList.add('show');
+}
+noteBtn.addEventListener('click',openNote);
+modalx.addEventListener('click',()=>modal.classList.remove('show'));
+modal.addEventListener('click',(e)=>{ if(e.target===modal) modal.classList.remove('show'); });
+document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') modal.classList.remove('show'); });
 
 function finish(){
   busy=false; sendBtn.disabled=false; cmd.focus();
