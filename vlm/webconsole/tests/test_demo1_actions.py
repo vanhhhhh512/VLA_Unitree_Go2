@@ -16,6 +16,11 @@ def test_match_dance_specific_over_generic():
     assert match_action("nhảy")["api_id"] == 1022
 
 
+def test_match_thanks():
+    assert match_action("cảm ơn")["api_id"] == 1036
+    assert match_action("thank you")["api_id"] == 1036
+
+
 def test_match_sit():
     assert match_action("ngồi")["api_id"] == 1009
 
