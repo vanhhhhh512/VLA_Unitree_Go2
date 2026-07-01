@@ -1,0 +1,2 @@
+{"event": "start", "instruction": "move to the microwave then stop"}
+{"step": 1, "action": "turn_left", "value": 90.0, "unit": "degrees", "reasoning": "vật cản phía trước > ngưỡng an toàn, chưa thấy mục tiêu", "obstacles_detected": [], "is_finished": false, "raw": "```json\n{\n  \"obstacle_check\": \"không (1.76m)\",\n  \"bottom_touched\": \"không\",\n  \"is_centered\": \"không\",\n  \"reasoning\": \"vật cản phía trước > ngưỡng an toàn, chưa thấy mục tiêu\",\n  \"action\": \"turn_left\",\n  \"value\": 90,\n  \"unit\": \"degrees\",\n  \"is_finished\": false\n}\n```"}

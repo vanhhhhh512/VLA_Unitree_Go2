@@ -1,0 +1,2 @@
+{"event": "start", "instruction": "move to the big blue bottle then stop"}
+{"step": 1, "action": "turn_left", "value": 10.0, "unit": "degrees", "reasoning": "Không thấy mục tiêu, nên quét tìm", "obstacles_detected": [], "is_finished": false, "raw": "```json\n{\n  \"obstacle_check\": \"không (2.26m)\",\n  \"bottom_touched\": \"không\",\n  \"is_centered\": \"không\",\n  \"reasoning\": \"Không thấy mục tiêu, nên quét tìm\",\n  \"action\": \"turn_left\",\n  \"value\": 10,\n  \"unit\": \"degrees\",\n  \"is_finished\": false\n}\n```"}

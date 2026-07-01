@@ -190,7 +190,11 @@ class Go2NodeFactory:
                 parameters=[{
                     'robot_ip': self.config.robot_ip,
                     'token': self.config.robot_token,
-                    'conn_type': self.config.conn_type
+                    'conn_type': self.config.conn_type,
+                    # DECODE_LIDAR=false để NHƯỜNG CPU cho decode video -> camera lên fps cao
+                    # (mất /point_cloud2 + /scan; VLM/servo bám YOLO vẫn chạy, mất né lidar).
+                    'decode_lidar': os.getenv('DECODE_LIDAR', 'true').lower() == 'true',
+                    'lidar_publish_rate': float(os.getenv('LIDAR_PUBLISH_RATE', '15.0')),
                 }],
             ),
             # LiDAR processing node (new separate package)

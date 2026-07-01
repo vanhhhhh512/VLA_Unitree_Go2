@@ -94,6 +94,13 @@
   .btn.stop { background:#fff; color:var(--err); border:1px solid var(--err); display:none; }
   .btn.stop.show { display:inline-block; }
 
+  .dbg { display:flex; flex-wrap:wrap; gap:6px; padding:7px 12px; border-bottom:1px solid var(--line);
+         background:#0f1115; }
+  .dbg .m { font-family:var(--mono); font-size:11.5px; padding:3px 8px; border-radius:5px;
+            background:#1b2027; color:#cbd5e1; border:1px solid #2a313b; white-space:nowrap; }
+  .dbg .m.ok  { background:#0f2a18; color:#86efac; border-color:#1f5132; }
+  .dbg .m.warn{ background:#2a230f; color:#fcd34d; border-color:#5a4a1a; }
+  .dbg .m.err { background:#2a1212; color:#fca5a5; border-color:#5a2020; }
   .notebtn { border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:7px;
              padding:8px 13px; font-weight:600; font-size:13px; cursor:pointer; }
   .notebtn:hover { background:#f6f8fa; }
@@ -134,16 +141,23 @@
 <div class="app">
   <section class="card">
     <h2><span class="live"></span> Live Camera</h2>
+    <div id="dbg" class="dbg">
+      <span class="m" id="m-tgt">target —</span>
+      <span class="m" id="m-gap">gap —</span>
+      <span class="m" id="m-off">offset —</span>
+      <span class="m" id="m-obs">obstacle —</span>
+      <span class="m" id="m-ctl">mode —</span>
+    </div>
     <div class="video"><img id="feed" src="/video_feed" alt="camera"></div>
   </section>
 
   <section class="card">
     <h2>Reasoning <span id="clear" class="clear">Clear</span></h2>
     <div id="chat" class="chat">
-      <div class="empty">Enter a command to begin — e.g. <b>“Is the bottle on the microwave?”</b></div>
+      <div class="empty">Nhập lệnh để VLM điều hướng — vd <b>“đi tới bình nước rồi rẽ phải, gặp ghế thì dừng”</b></div>
     </div>
     <form id="composer" class="composer">
-      <input id="cmd" placeholder='Ask: "Is the bottle on the microwave?"  ·  Move: "move forward 75 cm" / "turn left 90 deg"' autocomplete="off">
+      <input id="cmd" placeholder='VLM nav: "đi tới bình nước rồi rẽ phải, gặp ghế thì dừng"  ·  Lệnh tay: "move forward 75 cm" / "turn left 90 deg"' autocomplete="off">
       <button id="stop" class="btn stop" type="button">Stop</button>
       <button id="send" class="btn send" type="submit">Send</button>
     </form>
@@ -176,8 +190,8 @@ const clearBtn = document.getElementById('clear');
 const pill = document.getElementById('pill');
 const ptxt = document.getElementById('ptxt');
 
-const ICONS  = { plan:'🧠', nav:'🧭', perceive:'👁️', motion:'🚶', action:'🤖' };
-const TITLES = { plan:'Planning', nav:'Navigating', perceive:'Observing', motion:'Motion', action:'Action' };
+const ICONS  = { plan:'🧠', nav:'🧭', perceive:'👁️', motion:'🚶', action:'🤖', vla:'🧭' };
+const TITLES = { plan:'Planning', nav:'Navigating', perceive:'Observing', motion:'Motion', action:'Action', vla:'Auto-Nav (VLM)' };
 
 let curr = null;   // turn hiện tại {stepsEl, steps, ansEl, stateEl, txtEl}
 let busy = false, ws;
@@ -190,6 +204,32 @@ async function pollStatus() {
   } catch(e){ pill.className='pill off'; ptxt.textContent='OFFLINE'; }
 }
 pollStatus(); setInterval(pollStatus, 3000);
+
+// Dashboard debug: poll 5Hz (200ms) — tách khỏi WebSocket nên không gây lag camera.
+const mTgt=document.getElementById('m-tgt'), mGap=document.getElementById('m-gap'),
+      mOff=document.getElementById('m-off'), mObs=document.getElementById('m-obs'),
+      mCtl=document.getElementById('m-ctl');
+function setM(el, txt, cls){ el.textContent=txt; el.className='m'+(cls?(' '+cls):''); }
+async function pollDebug(){
+  try{
+    const d = await (await fetch('/debug')).json();
+    if(d.target_detected){
+      setM(mTgt, '🎯 '+(d.label||'target'), 'ok');
+      const stop=d.stop_px??20;
+      if(d.yolo_gap_px!=null) setM(mGap, `gap ${d.yolo_gap_px}px (dừng ≤${stop})`,
+                                   d.yolo_gap_px<=stop?'ok':null);
+      else setM(mGap,'gap —');
+      const tol=d.center_tol_deg??8;
+      if(d.center_offset_deg!=null) setM(mOff, `offset ${d.center_offset_deg}° (±${tol})`,
+                                         Math.abs(d.center_offset_deg)<=tol?'ok':'warn');
+      else setM(mOff,'offset —');
+    } else { setM(mTgt,'target: chưa thấy'); setM(mGap,'gap —'); setM(mOff,'offset —'); }
+    if(d.obstacle_m!=null) setM(mObs, `obstacle ${d.obstacle_m}m`, d.obstacle_m<0.4?'err':null);
+    else setM(mObs,'obstacle —');
+    setM(mCtl, 'mode '+(d.control||'—'));
+  }catch(e){ /* im lặng, lần sau thử lại */ }
+}
+pollDebug(); setInterval(pollDebug, 200);
 
 function clearEmpty(){ const e=chat.querySelector('.empty'); if(e) e.remove(); }
 
@@ -276,7 +316,7 @@ estopBtn.addEventListener('click',()=>{
 });
 
 clearBtn.addEventListener('click',()=>{
-  chat.innerHTML='<div class="empty">Enter a command to begin — e.g. <b>“Is the bottle on the microwave?”</b></div>';
+  chat.innerHTML='<div class="empty">Nhập lệnh để VLM điều hướng — vd <b>“đi tới bình nước rồi rẽ phải, gặp ghế thì dừng”</b></div>';
   curr=null;
 });
 

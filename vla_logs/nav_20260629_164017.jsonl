@@ -1,0 +1,2 @@
+{"event": "start", "instruction": "move to the blue bottle and stop"}
+{"step": 1, "action": "move_forward", "value": 20.0, "unit": "cm", "reasoning": "Mục tiêu là chai nước màu xanh, nên cần di chuyển đến nó.", "obstacles_detected": ["bottle"], "is_finished": false, "raw": "```json\n{\n  \"reasoning\": \"Mục tiêu là chai nước màu xanh, nên cần di chuyển đến nó.\",\n  \"action\": \"move_forward\",\n  \"value\": 20,\n  \"unit\": \"cm\",\n  \"obstacles_detected\": [\"bottle\"],\n  \"is_finished\": false\n}\n```"}

@@ -1,0 +1,2 @@
+{"event": "start", "instruction": "Move close to the water bottle, then stop."}
+{"step": 1, "action": "move_forward", "value": 10.0, "unit": "cm", "reasoning": "The water bottles are in front of the robot and need to be moved closer.", "obstacles_detected": ["water bottles"], "is_finished": false, "raw": "```json\n{\n  \"reasoning\": \"The water bottles are in front of the robot and need to be moved closer.\",\n  \"action\": \"move_forward\",\n  \"value\": 10,\n  \"unit\": \"cm\",\n  \"obstacles_detected\": [\"water bottles\"],\n  \"is_finished\": false\n}\n```"}

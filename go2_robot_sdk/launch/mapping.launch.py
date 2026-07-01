@@ -16,7 +16,7 @@ def generate_launch_description():
     """Generate launch description for Go2 mapping mode"""
     
     # Environment variables
-    robot_token = os.getenv('ROBOT_TOKEN', 'af4195d67dd4d585f161f7e0932c2aa8')
+    robot_token = os.getenv('ROBOT_TOKEN', '')  # rỗng cho Go2 nối LAN trực tiếp (STA)
     robot_ip = os.getenv('ROBOT_IP', '')
     robot_ip_list = robot_ip.replace(" ", "").split(",") if robot_ip else []
     map_name = os.getenv('MAP_NAME', 'my_map')
@@ -100,19 +100,20 @@ def generate_launch_description():
         ('cloud_in', '/point_cloud2'),  # single: nhận thẳng từ driver; multi: từ lidar_to_pointcloud
     ],
     parameters=[{
+        # B1: PHẢI KHỚP navigation.launch.py để AMCL định vị được trên map quét bằng cấu hình này
         'max_range': 10.0,
-        'min_range': 0.15,
-        'height_filter_min': 0.2,   # chỉ giữ lát 0.2-0.4m (z trong frame odom ~ so với mặt đất)
+        'min_range': 0.30,          # B1: cắt nhiễu sát thân/chân robot (khớp range_min p2l 0.35)
+        'height_filter_min': 0.2,   # GIỮ lát 0.2-0.4m (z trong frame odom ~ so với mặt đất)
         'height_filter_max': 0.4,
         'downsample_rate': 1,
         'publish_rate': 20.0,
-        'voxel_leaf_size': 0.05,    # 5cm: single mode bỏ lidar_to_pointcloud nên phải voxel ở đây
+        'voxel_leaf_size': 0.0,     # B1: driver đã voxel 0.06m -> bỏ voxel lại (đỡ CPU, không mất điểm)
         'sor_enable': True,         # tắt (False) nếu cần giảm CPU thêm
-        'sor_mean_k': 12,           # nhẹ hơn mặc định cũ (30)
-        'sor_std_dev': 1.0,
+        'sor_mean_k': 16,           # B1: K lớn hơn -> ước lượng nhiễu ổn định hơn
+        'sor_std_dev': 0.9,         # B1: siết nhẹ -> bỏ điểm rải rác tốt hơn
         'ror_enable': True,         # lọc điểm lẻ loi: quanh nó < ror_min_neighbors điểm thì bỏ
-        'ror_radius': 0.15,         # bán kính tìm hàng xóm (m)
-        'ror_min_neighbors': 3,     # cần >=3 điểm trong bán kính, không thì coi là nhiễu -> bỏ
+        'ror_radius': 0.25,         # B1: nới bán kính (LiDAR thưa) -> không xóa nhầm điểm thật
+        'ror_min_neighbors': 2,     # B1: hạ ngưỡng -> chỉ giết điểm thật sự lẻ loi, tránh tạo lỗ hổng
     }],
 ),
         # PointCloud to LaserScan converter - maximum coverage

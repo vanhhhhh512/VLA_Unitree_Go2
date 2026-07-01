@@ -9,6 +9,7 @@
 parse_motion thuần (chỉ re/math) -> unit-test được. ROS import nằm trong MotionController
 (lazy) nên module import được khi không có ROS.
 """
+import os
 import re
 import math
 from dataclasses import dataclass
@@ -72,9 +73,22 @@ def _yaw(q):
 
 
 class MotionController:
-    def __init__(self, node, cmd_topic="/cmd_vel_joy", lin_speed=0.3, ang_speed=0.6,
-                 rate_hz=20.0, scan_topic="/scan", front_stop=0.45, front_fov_deg=20.0,
-                 timeout_s=25.0):
+    def __init__(self, node, cmd_topic="/cmd_vel_joy", lin_speed=None, ang_speed=None,
+                 rate_hz=20.0, scan_topic="/scan", front_stop=None, front_fov_deg=20.0,
+                 timeout_s=40.0):
+        # Đi bằng env MOTION_LIN_SPEED; xoay bằng MOTION_ANG_SPEED (mặc định ~20°/s để
+        # xoay dứt khoát), có TRẦN an toàn MOTION_ANG_MAX_DEG (mặc định 30°/s) để xoay
+        # không quá nhanh gây mất cam. Hạ trần xuống nếu xoay mà mất camera.
+        if lin_speed is None:
+            lin_speed = float(os.getenv("MOTION_LIN_SPEED", "0.3"))
+        if ang_speed is None:
+            ang_speed = float(os.getenv("MOTION_ANG_SPEED", "0.35"))   # ~20°/s
+        ang_max = math.radians(float(os.getenv("MOTION_ANG_MAX_DEG", "10")))
+        ang_speed = min(abs(ang_speed), ang_max)
+        # Khoảng cách (m) lidar coi là vật cản phía trước -> dừng. HẠ xuống để robot
+        # được lại GẦN mục tiêu hơn (đáy box xuống sát mép dưới ảnh). Mặc định 0.30m.
+        if front_stop is None:
+            front_stop = float(os.getenv("MOTION_FRONT_STOP", "0.30"))
         from geometry_msgs.msg import TwistStamped
         from nav_msgs.msg import Odometry
         from sensor_msgs.msg import LaserScan
@@ -110,6 +124,18 @@ class MotionController:
             if -self.front_fov <= a <= self.front_fov and r > 0.05 and r == r:
                 vals.append(r)
         return (min(vals) > self.front_stop) if vals else True
+
+    def front_distance(self):
+        """Khoảng cách vật gần nhất trong nón phía trước (m), hoặc None nếu chưa có scan."""
+        s = self._scan
+        if s is None:
+            return None
+        vals = []
+        for i, r in enumerate(s.ranges):
+            a = s.angle_min + i * s.angle_increment
+            if -self.front_fov <= a <= self.front_fov and r > 0.05 and r == r:
+                vals.append(r)
+        return min(vals) if vals else None
 
     def _publish(self, vx, wz):
         msg = self._TwistStamped()
@@ -165,7 +191,12 @@ class MotionController:
         prev = _yaw(self._odom.orientation)
         acc = 0.0
         target = abs(angle)
-        wz = self.ang_speed if angle >= 0 else -self.ang_speed
+        # Dung sai HOÀN THÀNH lệnh xoay (deadband chống vọt/rung ở 20Hz). KHÔNG phải ngưỡng
+        # căn giữa 5° (cái đó ở prompt VLM). Hạ xuống nếu muốn xoay tới sát góc lệnh hơn.
+        turn_tol = math.radians(float(os.getenv("MOTION_TURN_TOL_DEG", "5")))
+        # MOTION_TURN_SIGN=-1 nếu robot xoay NGƯỢC chiều mong muốn (lệch mounting/sign).
+        sign = float(os.getenv("MOTION_TURN_SIGN", "1"))
+        wz = (self.ang_speed if angle >= 0 else -self.ang_speed) * sign
         t0 = time.time()
         while True:
             if cancel is not None and cancel.is_set():
@@ -176,7 +207,7 @@ class MotionController:
             acc += abs(d)
             prev = cur
             rem = target - acc
-            if rem <= math.radians(2):
+            if rem <= turn_tol:
                 yield {"kind": "done"}
                 return
             if time.time() - t0 > self.timeout_s:

@@ -1,0 +1,2 @@
+{"event": "start", "instruction": "move to the biggest bottle and stop"}
+{"step": 1, "action": "turn_left", "value": 45.0, "unit": "degrees", "reasoning": "The biggest bottle is on the left side of the image.", "obstacles_detected": ["biggest bottle"], "is_finished": false, "raw": "```json\n{\n  \"reasoning\": \"The biggest bottle is on the left side of the image.\",\n  \"action\": \"turn_left\",\n  \"value\": 45,\n  \"unit\": \"degrees\",\n  \"obstacles_detected\": [\"biggest bottle\"],\n  \"is_finished\": false\n}\n```"}

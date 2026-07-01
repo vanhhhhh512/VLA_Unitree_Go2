@@ -16,11 +16,13 @@ def generate_launch_description():
     """Generate launch description for Go2 navigation mode"""
     
     # Environment variables
-    robot_token = os.getenv('ROBOT_TOKEN', 'af4195d67dd4d585f161f7e0932c2aa8')
+    # Token RỖNG cho Go2 nối LAN trực tiếp (STA). Token cũ af41... sai robot này
+    # -> lỗi WebRTC "Media sections in answer do not match offer".
+    robot_token = os.getenv('ROBOT_TOKEN', '')
     robot_ip = os.getenv('ROBOT_IP', '')
     robot_ip_list = robot_ip.replace(" ", "").split(",") if robot_ip else []
     # `or` thay vì default arg: xử lý cả khi MAP_FILE được set thành rỗng
-    map_file = os.getenv('MAP_FILE') or '/home/dsc-labs/ros2_ws/src/go2_robot_sdk/map/cty.yaml'
+    map_file = os.getenv('MAP_FILE') or '/home/dsc-labs/ros2_vlm/src/go2_robot_sdk/map/cty.yaml'
     conn_type = os.getenv('CONN_TYPE', 'webrtc')
     
     # Determine connection mode
@@ -105,18 +107,18 @@ def generate_launch_description():
             ],
             parameters=[{
                 'max_range': 10.0,
-                'min_range': 0.15,
-                'height_filter_min': 0.2,   # cùng lát cao 0.2-0.4m như lúc quét map -> AMCL khớp
+                'min_range': 0.30,          # B1: cắt nhiễu sát thân/chân robot (khớp range_min p2l 0.35)
+                'height_filter_min': 0.2,   # GIỮ lát cao 0.2-0.4m như lúc quét map -> AMCL khớp
                 'height_filter_max': 0.4,
                 'downsample_rate': 1,
                 'publish_rate': 20.0,
-                'voxel_leaf_size': 0.05,
+                'voxel_leaf_size': 0.0,     # B1: upstream đã voxelize 0.06m -> bỏ voxel lại (đỡ CPU, không mất điểm)
                 'sor_enable': True,
-                'sor_mean_k': 12,
-                'sor_std_dev': 1.0,
+                'sor_mean_k': 16,           # B1: K lớn hơn -> ước lượng nhiễu ổn định hơn
+                'sor_std_dev': 0.9,         # B1: siết nhẹ -> bỏ điểm rải rác tốt hơn
                 'ror_enable': True,
-                'ror_radius': 0.15,
-                'ror_min_neighbors': 3,
+                'ror_radius': 0.25,         # B1: nới bán kính (LiDAR thưa) -> không xóa nhầm điểm thật
+                'ror_min_neighbors': 2,     # B1: hạ ngưỡng -> chỉ giết điểm thật sự lẻ loi, tránh tạo lỗ hổng
             }],
         ),
         # PointCloud to LaserScan - KHỚP mapping (để AMCL khớp map)
