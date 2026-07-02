@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StrikeRobot · Demo 1</title>
+<style>
+  :root {
+    --ink:#0f1115; --sub:#5b6470; --line:#e3e6ea; --bg:#eef1f4; --card:#ffffff;
+    --accent:#111827; --ok:#15803d; --run:#1d4ed8; --err:#b91c1c;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; }
+  body { font-family:"Inter","Segoe UI",system-ui,sans-serif; color:var(--ink);
+         background:var(--bg); overflow:hidden; font-size:14px; }
+
+  header { display:flex; align-items:center; gap:12px; padding:11px 18px;
+           background:var(--card); border-bottom:1px solid var(--line); }
+  header img { width:34px; height:34px; border-radius:7px; object-fit:cover; }
+  header .brand { display:flex; flex-direction:column; line-height:1.2; }
+  header .t { font-weight:800; letter-spacing:1.2px; font-size:15px; }
+  header .s { color:var(--sub); font-size:11px; }
+  .pill { font-family:var(--mono); font-size:11px; padding:5px 11px; border:1px solid var(--line);
+          border-radius:5px; color:var(--sub); display:flex; align-items:center; gap:7px;
+          background:#fafbfc; margin-left:auto; }
+  .dot { width:8px; height:8px; border-radius:50%; background:#cbd5e1; }
+  .pill.on .dot { background:var(--ok); } .pill.off .dot { background:var(--err); }
+  /* Emergency stop — always visible */
+  .estop { display:flex; align-items:center; gap:8px; background:#dc2626; color:#fff; border:0;
+           border-radius:7px; padding:9px 16px; font-weight:800; letter-spacing:.5px; font-size:13px;
+           cursor:pointer; box-shadow:0 1px 0 #991b1b inset, 0 2px 6px rgba(220,38,38,.35); }
+  .estop:hover { background:#ef4444; }
+  .estop:active { transform:translateY(1px); }
+  .estop .oct { width:14px; height:14px; background:#fff; border-radius:3px;
+                clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%); }
+
+  .app { display:grid; grid-template-columns:1.1fr 1fr; gap:14px; padding:14px;
+         height:calc(100vh - 58px); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px;
+          display:flex; flex-direction:column; overflow:hidden; }
+  .card h2 { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--sub);
+             margin:0; padding:11px 16px; border-bottom:1px solid var(--line);
+             display:flex; align-items:center; gap:7px; font-weight:600; }
+  .card h2 .live { width:7px; height:7px; border-radius:50%; background:var(--err); }
+  .card h2 .clear { margin-left:auto; font-size:10px; color:var(--sub); cursor:pointer;
+                    border:1px solid var(--line); border-radius:4px; padding:3px 8px; background:#fff; }
+
+  .video { flex:1; display:flex; align-items:center; justify-content:center; background:#101317; padding:10px; }
+  .video img { max-width:100%; max-height:100%; border-radius:4px; }
+
+  .chat { flex:1; overflow-y:auto; padding:14px 16px; display:flex; flex-direction:column; gap:16px; }
+  .empty { margin:auto; color:#9aa1ac; text-align:center; max-width:300px; }
+
+  .turn { display:flex; flex-direction:column; gap:9px; padding-bottom:14px;
+          border-bottom:1px solid var(--line); }
+  .turn:last-child { border-bottom:0; }
+  .bubble { align-self:flex-end; max-width:82%; background:var(--accent); color:#fff;
+            padding:9px 13px; border-radius:8px 8px 2px 8px; font-size:13px; }
+  .bubble .who { font-family:var(--mono); font-size:9px; letter-spacing:1px; opacity:.55; margin-bottom:2px; }
+  .steps { display:flex; flex-direction:column; }
+
+  .step { display:flex; gap:11px; padding:8px 0; }
+  .ico { width:30px; height:30px; flex:none; border-radius:6px; display:flex; align-items:center;
+         justify-content:center; font-size:15px; background:#f1f3f6; border:1px solid var(--line); }
+  .step.running .ico { background:#eaf0ff; border-color:#c7d7fe; }
+  .step.done .ico    { background:#e9f7ef; border-color:#bbe5c8; }
+  .step.error .ico   { background:#fdecec; border-color:#f4c6c6; }
+  .step .body { flex:1; min-width:0; }
+  .step .title { font-weight:600; font-size:13px; display:flex; align-items:center; gap:7px; }
+  .step.running .title::after { content:"●"; color:var(--run); font-size:9px; }
+  .step .detail { color:var(--sub); font-size:12.5px; margin-top:3px; white-space:pre-wrap;
+                  line-height:1.5; word-break:break-word; }
+  .step .detail img { display:block; margin-top:8px; max-width:100%; border-radius:5px; border:1px solid var(--line); }
+  .mono { font-family:var(--mono); font-size:11.5px; color:#475569; background:#f1f3f6;
+          padding:1px 6px; border-radius:4px; }
+
+  .answer { padding:12px 14px; border-radius:7px; border:1px solid var(--line); background:#fafbfc; display:none; }
+  .answer.show { display:block; }
+  .answer .lab { font-family:var(--mono); font-size:10px; color:var(--sub); text-transform:uppercase; letter-spacing:1px; }
+  .arow { display:flex; align-items:flex-start; gap:10px; margin-top:7px; }
+  .state { font-family:var(--mono); padding:3px 10px; border-radius:5px; font-size:12px; font-weight:700; flex:none; }
+  .state.ON, .state.YES { background:#e9f7ef; color:var(--ok); border:1px solid #bbe5c8; }
+  .state.OFF, .state.NO { background:#fdecec; color:var(--err); border:1px solid #f4c6c6; }
+  .state.UNKNOWN { background:#fef6e7; color:#92600e; border:1px solid #f3e0b5; }
+  .txt { font-size:14px; font-weight:600; line-height:1.5; }
+
+  .composer { display:flex; gap:8px; padding:12px 14px; border-top:1px solid var(--line); background:var(--card); }
+  .composer input { flex:1; border:1px solid var(--line); border-radius:6px; padding:10px 13px; font-size:13.5px; outline:none; }
+  .composer input:focus { border-color:var(--accent); }
+  .btn { border:0; border-radius:6px; padding:0 18px; font-weight:600; font-size:13px; cursor:pointer; }
+  .btn.send { background:var(--accent); color:#fff; }
+  .btn.send:disabled { opacity:.4; cursor:not-allowed; }
+  .btn.stop { background:#fff; color:var(--err); border:1px solid var(--err); display:none; }
+  .btn.stop.show { display:inline-block; }
+
+  .dbg { display:flex; flex-wrap:wrap; gap:6px; padding:7px 12px; border-bottom:1px solid var(--line);
+         background:#0f1115; }
+  .dbg .m { font-family:var(--mono); font-size:11.5px; padding:3px 8px; border-radius:5px;
+            background:#1b2027; color:#cbd5e1; border:1px solid #2a313b; white-space:nowrap; }
+  .dbg .m.ok  { background:#0f2a18; color:#86efac; border-color:#1f5132; }
+  .dbg .m.warn{ background:#2a230f; color:#fcd34d; border-color:#5a4a1a; }
+  .dbg .m.err { background:#2a1212; color:#fca5a5; border-color:#5a2020; }
+  .notebtn { border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:7px;
+             padding:8px 13px; font-weight:600; font-size:13px; cursor:pointer; }
+  .notebtn:hover { background:#f6f8fa; }
+
+  .modal { position:fixed; inset:0; background:rgba(15,17,21,.5); display:none;
+           align-items:center; justify-content:center; z-index:50; }
+  .modal.show { display:flex; }
+  .modal .box { background:#fff; width:min(860px,93vw); max-height:84vh; border-radius:10px;
+                overflow:hidden; display:flex; flex-direction:column;
+                box-shadow:0 20px 60px rgba(0,0,0,.3); }
+  .modal .mhead { display:flex; align-items:center; padding:13px 18px; border-bottom:1px solid var(--line); }
+  .modal .mhead h3 { margin:0; font-size:15px; }
+  .modal .x { margin-left:auto; cursor:pointer; border:1px solid var(--line); background:#fff;
+              border-radius:6px; width:30px; height:30px; font-size:15px; line-height:1; }
+  .modal .x:hover { background:#fdecec; color:var(--err); border-color:var(--err); }
+  .modal .mbody { overflow-y:auto; }
+  table.acts { width:100%; border-collapse:collapse; font-size:13px; }
+  table.acts th, table.acts td { text-align:left; padding:9px 16px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.acts th { font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--sub);
+                  position:sticky; top:0; background:#fff; }
+  table.acts .k { font-family:var(--mono); font-size:11.5px; color:#475569; white-space:nowrap; }
+</style>
+</head>
+<body>
+<header>
+  <img src="/assets/logo.jpg" alt="StrikeRobot" onerror="this.style.display='none'">
+  <div class="brand">
+    <span class="t">STRIKE ROBOT</span>
+    <span class="s">Demo 1 · Agentic Navigation + Vision</span>
+  </div>
+  <span id="pill" class="pill off"><span class="dot"></span><span id="ptxt">—</span></span>
+  <button id="note" class="notebtn" title="Bảng hành động robot">📖 Note</button>
+  <button id="estop" class="estop" title="Emergency Stop — halt the robot now">
+    <span class="oct"></span> E-STOP
+  </button>
+</header>
+
+<div class="app">
+  <section class="card">
+    <h2><span class="live"></span> Live Camera</h2>
+    <div id="dbg" class="dbg">
+      <span class="m" id="m-tgt">target —</span>
+      <span class="m" id="m-gap">gap —</span>
+      <span class="m" id="m-off">offset —</span>
+      <span class="m" id="m-obs">obstacle —</span>
+      <span class="m" id="m-ctl">mode —</span>
+    </div>
+    <div class="video"><img id="feed" src="/video_feed" alt="camera"></div>
+  </section>
+
+  <section class="card">
+    <h2>Reasoning <span id="clear" class="clear">Clear</span></h2>
+    <div id="chat" class="chat">
+      <div class="empty">Nhập lệnh để VLM điều hướng — vd <b>“đi tới bình nước rồi rẽ phải, gặp ghế thì dừng”</b></div>
+    </div>
+    <form id="composer" class="composer">
+      <input id="cmd" placeholder='VLM nav: "đi tới bình nước rồi rẽ phải, gặp ghế thì dừng"  ·  Lệnh tay: "move forward 75 cm" / "turn left 90 deg"' autocomplete="off">
+      <button id="stop" class="btn stop" type="button">Stop</button>
+      <button id="send" class="btn send" type="submit">Send</button>
+    </form>
+  </section>
+</div>
+
+<div id="modal" class="modal">
+  <div class="box">
+    <div class="mhead">
+      <h3>📖 Bảng hành động Robot</h3>
+      <button id="modalx" class="x" title="Đóng">✕</button>
+    </div>
+    <div class="mbody">
+      <table class="acts">
+        <thead><tr><th>Hành động</th><th>Gõ lệnh</th><th>Mô tả</th></tr></thead>
+        <tbody id="acts-body"><tr><td colspan="3" style="padding:16px;color:#9aa1ac">Đang tải…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const chat = document.getElementById('chat');
+const form = document.getElementById('composer');
+const cmd = document.getElementById('cmd');
+const sendBtn = document.getElementById('send');
+const stopBtn = document.getElementById('stop');
+const estopBtn = document.getElementById('estop');
+const clearBtn = document.getElementById('clear');
+const pill = document.getElementById('pill');
+const ptxt = document.getElementById('ptxt');
+
+const ICONS  = { plan:'🧠', nav:'🧭', perceive:'👁️', motion:'🚶', action:'🤖', vla:'🧭' };
+const TITLES = { plan:'Planning', nav:'Navigating', perceive:'Observing', motion:'Motion', action:'Action', vla:'Auto-Nav (VLM)' };
+
+let curr = null;   // turn hiện tại {stepsEl, steps, ansEl, stateEl, txtEl}
+let busy = false, ws;
+
+async function pollStatus() {
+  try {
+    const s = await (await fetch('/status')).json();
+    pill.className = 'pill ' + (s.connected ? 'on' : 'off');
+    ptxt.textContent = s.connected ? 'CONNECTED' : (s.mock ? 'MOCK' : 'DISCONNECTED');
+  } catch(e){ pill.className='pill off'; ptxt.textContent='OFFLINE'; }
+}
+pollStatus(); setInterval(pollStatus, 3000);
+
+// Dashboard debug: poll 5Hz (200ms) — tách khỏi WebSocket nên không gây lag camera.
+const mTgt=document.getElementById('m-tgt'), mGap=document.getElementById('m-gap'),
+      mOff=document.getElementById('m-off'), mObs=document.getElementById('m-obs'),
+      mCtl=document.getElementById('m-ctl');
+function setM(el, txt, cls){ el.textContent=txt; el.className='m'+(cls?(' '+cls):''); }
+async function pollDebug(){
+  try{
+    const d = await (await fetch('/debug')).json();
+    if(d.target_detected){
+      setM(mTgt, '🎯 '+(d.label||'target'), 'ok');
+      const stop=d.stop_px??20;
+      if(d.yolo_gap_px!=null) setM(mGap, `gap ${d.yolo_gap_px}px (dừng ≤${stop})`,
+                                   d.yolo_gap_px<=stop?'ok':null);
+      else setM(mGap,'gap —');
+      const tol=d.center_tol_deg??8;
+      if(d.center_offset_deg!=null) setM(mOff, `offset ${d.center_offset_deg}° (±${tol})`,
+                                         Math.abs(d.center_offset_deg)<=tol?'ok':'warn');
+      else setM(mOff,'offset —');
+    } else { setM(mTgt,'target: chưa thấy'); setM(mGap,'gap —'); setM(mOff,'offset —'); }
+    if(d.obstacle_m!=null) setM(mObs, `obstacle ${d.obstacle_m}m`, d.obstacle_m<0.4?'err':null);
+    else setM(mObs,'obstacle —');
+    setM(mCtl, 'mode '+(d.control||'—'));
+  }catch(e){ /* im lặng, lần sau thử lại */ }
+}
+pollDebug(); setInterval(pollDebug, 200);
+
+function clearEmpty(){ const e=chat.querySelector('.empty'); if(e) e.remove(); }
+
+function newTurn(command){
+  clearEmpty();
+  const turn=document.createElement('div'); turn.className='turn';
+  const b=document.createElement('div'); b.className='bubble';
+  const who=document.createElement('div'); who.className='who'; who.textContent='YOU';
+  const bt=document.createElement('div'); bt.textContent=command;
+  b.appendChild(who); b.appendChild(bt);
+  const steps=document.createElement('div'); steps.className='steps';
+  const ans=document.createElement('div'); ans.className='answer';
+  ans.innerHTML='<div class="lab">Conclusion</div><div class="arow"><span class="state"></span><div class="txt"></div></div>';
+  turn.appendChild(b); turn.appendChild(steps); turn.appendChild(ans);
+  chat.appendChild(turn);
+  curr={ stepsEl:steps, steps:{}, ansEl:ans,
+         stateEl:ans.querySelector('.state'), txtEl:ans.querySelector('.txt') };
+  chat.scrollTop=chat.scrollHeight;
+}
+function ensureStep(id){
+  if(!curr) return null;
+  if(curr.steps[id]) return curr.steps[id];
+  const el=document.createElement('div'); el.className='step running';
+  el.innerHTML=`<div class="ico">${ICONS[id]||'•'}</div><div class="body"><div class="title"></div><div class="detail"></div></div>`;
+  el.querySelector('.title').textContent=TITLES[id]||id;
+  curr.stepsEl.appendChild(el); chat.scrollTop=chat.scrollHeight;
+  curr.steps[id]={el, detail:el.querySelector('.detail'), title:el.querySelector('.title')};
+  return curr.steps[id];
+}
+
+function connectWS(){
+  ws=new WebSocket(`ws://${location.host}/ws`);
+  ws.onclose=()=>setTimeout(connectWS,1500);
+  ws.onmessage=onMsg;
+}
+connectWS();
+
+function onMsg(ev){
+  const m=JSON.parse(ev.data);
+  if(!curr) return;
+  if(m.type==='step'){
+    const s=ensureStep(m.id); s.el.className='step '+m.status;
+    if(m.title) s.title.textContent=m.title;
+    if(m.data && m.data.x!==undefined)
+      s.detail.innerHTML=`Target <span class="mono">${m.data.room}</span> → <span class="mono">x=${m.data.x}, y=${m.data.y}</span>`;
+  } else if(m.type==='token'){
+    const s=ensureStep(m.step); s.detail.textContent+=m.text; chat.scrollTop=chat.scrollHeight;
+  } else if(m.type==='nav'){
+    const s=ensureStep('nav'); s.detail.innerHTML=`<span class="mono">${m.distance_remaining.toFixed(2)} m</span> remaining…`;
+  } else if(m.type==='image'){
+    const s=ensureStep('perceive'); const img=new Image();
+    img.src='data:image/jpeg;base64,'+m.data; s.detail.appendChild(img); chat.scrollTop=chat.scrollHeight;
+  } else if(m.type==='answer'){
+    curr.txtEl.textContent=m.text;
+    const show = m.state && m.state!=='UNKNOWN';
+    curr.stateEl.textContent=m.state; curr.stateEl.className='state '+m.state;
+    curr.stateEl.style.display = show ? '' : 'none';
+    curr.ansEl.classList.add('show'); finish();
+  } else if(m.type==='error'){
+    const e=document.createElement('div'); e.className='step error';
+    e.innerHTML=`<div class="ico">⚠️</div><div class="body"><div class="title">Stopped / Error</div><div class="detail"></div></div>`;
+    e.querySelector('.detail').textContent=m.message;
+    curr.stepsEl.appendChild(e); chat.scrollTop=chat.scrollHeight; finish();
+  }
+}
+
+form.addEventListener('submit',(e)=>{
+  e.preventDefault();
+  const c=cmd.value.trim();
+  if(!c||busy||ws.readyState!==1) return;
+  newTurn(c);
+  busy=true; sendBtn.disabled=true; stopBtn.classList.add('show'); cmd.value='';
+  ws.send(JSON.stringify({command:c}));
+});
+
+stopBtn.addEventListener('click',()=>{
+  if(!busy||ws.readyState!==1) return;
+  ws.send(JSON.stringify({action:'stop'}));
+  stopBtn.textContent='Stopping…'; stopBtn.disabled=true;
+});
+
+estopBtn.addEventListener('click',()=>{
+  if(ws.readyState===1) ws.send(JSON.stringify({action:'estop'}));
+});
+
+clearBtn.addEventListener('click',()=>{
+  chat.innerHTML='<div class="empty">Nhập lệnh để VLM điều hướng — vd <b>“đi tới bình nước rồi rẽ phải, gặp ghế thì dừng”</b></div>';
+  curr=null;
+});
+
+// Note: bảng hành động robot (fetch /actions)
+const noteBtn=document.getElementById('note');
+const modal=document.getElementById('modal');
+const modalx=document.getElementById('modalx');
+const actsBody=document.getElementById('acts-body');
+let actsLoaded=false;
+async function openNote(){
+  if(!actsLoaded){
+    try{
+      const list=await (await fetch('/actions')).json();
+      actsBody.innerHTML=list.map(a=>
+        `<tr><td><b>${a.vi}</b></td><td class="k">${a.keys.slice(0,3).join('<br>')}</td><td>${a.desc}</td></tr>`
+      ).join('');
+      actsLoaded=true;
+    }catch(e){ actsBody.innerHTML='<tr><td colspan="3" style="padding:16px">Không tải được danh sách.</td></tr>'; }
+  }
+  modal.classList.add('show');
+}
+noteBtn.addEventListener('click',openNote);
+modalx.addEventListener('click',()=>modal.classList.remove('show'));
+modal.addEventListener('click',(e)=>{ if(e.target===modal) modal.classList.remove('show'); });
+document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') modal.classList.remove('show'); });
+
+function finish(){
+  busy=false; sendBtn.disabled=false; cmd.focus();
+  stopBtn.classList.remove('show'); stopBtn.disabled=false; stopBtn.textContent='Stop';
+}
+</script>
+</body>
+</html>

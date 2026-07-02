@@ -1,0 +1,7 @@
+NaVILA-Dataset/
+*.safetensors
+*.pt
+__pycache__/
+.ipynb_checkpoints/
+vla_logs/
+venv/

@@ -1,0 +1,2 @@
+{"event": "start", "instruction": "Move close to the water bottle, then stop."}
+{"step": 1, "action": "move_forward", "value": 10.0, "unit": "cm", "reasoning": "The water bottle is clearly visible and centered in the image.", "obstacles_detected": [], "is_finished": false, "raw": "```json\n{\n  \"reasoning\": \"The water bottle is clearly visible and centered in the image.\",\n  \"action\": \"move_forward\",\n  \"value\": 10,\n  \"unit\": \"cm\",\n  \"obstacles_detected\": [],\n  \"is_finished\": false\n}\n```"}
