@@ -13,7 +13,7 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
 ]
 dependencies = [
-    "torch==2.3.0", "torchvision==0.18.0",
+    "torch", "torchvision",
     "transformers==4.37.2", "tokenizers>=0.15.2", "sentencepiece==0.1.99", "shortuuid",
     "accelerate==0.27.2", "peft==0.9.0", "bitsandbytes==0.41.0",
     "pydantic<2,>=1", "markdown2[all]", "numpy==1.26.0", "scikit-learn==1.2.2",

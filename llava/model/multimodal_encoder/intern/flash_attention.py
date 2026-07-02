@@ -19,12 +19,16 @@ import torch
 import torch.nn as nn
 from einops import rearrange
 
-try:  # v1
-    from flash_attn.flash_attn_interface import flash_attn_unpadded_qkvpacked_func
-except:  # v2
-    from flash_attn.flash_attn_interface import flash_attn_varlen_qkvpacked_func as flash_attn_unpadded_qkvpacked_func
-
-from flash_attn.bert_padding import pad_input, unpad_input
+# PATCH: flash_attn không cài trên Blackwell -> import an toàn (dùng SigLIP+sdpa, không dùng InternViT FlashAttention)
+try:
+    try:  # v1
+        from flash_attn.flash_attn_interface import flash_attn_unpadded_qkvpacked_func
+    except Exception:  # v2
+        from flash_attn.flash_attn_interface import flash_attn_varlen_qkvpacked_func as flash_attn_unpadded_qkvpacked_func
+    from flash_attn.bert_padding import pad_input, unpad_input
+except Exception:
+    flash_attn_unpadded_qkvpacked_func = None
+    pad_input = unpad_input = None
 
 
 class FlashAttention(nn.Module):

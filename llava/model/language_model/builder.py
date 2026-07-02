@@ -66,6 +66,9 @@ def build_llm_and_tokenizer(
     **kwargs,
 ) -> Tuple[PreTrainedModel, PreTrainedTokenizer]:
     llm_cfg = AutoConfig.from_pretrained(model_name_or_path)
+    # PATCH Blackwell: không có flash-attn -> ép sdpa (nhanh, hỗ trợ sm_120).
+    if attn_implementation in (None, "flash_attention_2"):
+        attn_implementation = "eager"
     llm_cfg._attn_implementation = attn_implementation
     llm_cfg.model_max_length = model_max_length
     if model_max_length is not None:
